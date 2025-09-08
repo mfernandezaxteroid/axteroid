@@ -16,7 +16,7 @@ class AccountBatchPayment(models.Model):
         for payment in self.payment_ids:
             partner = payment.partner_id
 
-            if not partner.l10n_cl_rut:
+            if not partner.vat:
                 raise UserError(f"El proveedor {partner.name} no tiene RUT configurado.")
 
             rut = partner.l10n_cl_rut.replace('.', '').replace('-', '')
