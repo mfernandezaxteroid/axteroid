@@ -33,7 +33,7 @@ class AccountBatchPayment(models.Model):
             account_number = (partner.bank_ids[:1].acc_number or '').rjust(20) if partner.bank_ids else ''.rjust(20)
 
             # Banco: 3 dígitos (debe tener configurado el código)
-            bank_code = partner.bank_id.bic or '000'
+            bank_code = partner.bank_account_id.bank_id and partner.bank_account_id.bank_id.l10n_cl_sbif_code or '000'
             bank_code = bank_code.zfill(3)
 
             # Tipo cuenta: 2 dígitos (corriente = 1, vista = 2, ahorro = 3)
