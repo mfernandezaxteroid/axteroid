@@ -1,5 +1,4 @@
 import base64
-import os
 from odoo import models, fields, api
 from odoo.exceptions import UserError
 from datetime import datetime
@@ -19,56 +18,58 @@ class AccountBatchPayment(models.Model):
             if not partner.vat:
                 raise UserError(f"El proveedor {partner.name} no tiene RUT configurado.")
 
-            rut = partner.vat.replace('.', '').replace('-', '') if partner.vat else ''
+            # RUT: sin puntos ni guion, hasta 11 caracteres
+            rut = partner.vat.replace('.', '').replace('-', '').zfill(11)
 
-            rut = rut.zfill(10)
+            # Nombre Titular: hasta 40 caracteres, sin puntos, guiones ni tildes
+            name = (partner.name or '').replace('.', '').replace('-', '')[:40].ljust(40)
 
-            # Nombre: 40 caracteres, izquierda, relleno con espacios
-            name = partner.name[:40].ljust(40)
+            # Cuenta Titular: hasta 17 caracteres, derecha con espacios
+            bank_account = partner.bank_ids[:1]
+            account_number = (bank_account.acc_number or '').rjust(17) if bank_account else ''.rjust(17)
 
-            # Monto: 13 posiciones, sin punto decimal, relleno con ceros a la izquierda
-            amount = str(int(payment.amount)).zfill(13)
+            # Monto: hasta 11 dígitos enteros, sin separadores ni decimales
+            amount = str(int(payment.amount)).zfill(11)
 
-            # Número cuenta: 20 caracteres, derecha, relleno con espacios
-            account_number = (partner.bank_ids[:1].acc_number or '').rjust(20) if partner.bank_ids else ''.rjust(20)
-
-            # Banco: 3 dígitos (debe tener configurado el código)
-            bank_account = partner.bank_ids and partner.bank_ids[0] or False
+            # Banco: código SBIF, hasta 3 caracteres, usar '000' si no hay
             bank_code = bank_account.bank_id.l10n_cl_sbif_code if bank_account and bank_account.bank_id and bank_account.bank_id.l10n_cl_sbif_code else '000'
             bank_code = bank_code.zfill(3)
 
-            # Tipo cuenta: 2 dígitos (corriente = 1, vista = 2, ahorro = 3)
-            account_type = partner.bank_account_id.account_type or '1'
-            account_type = account_type.zfill(2)
+            # Tipo de cuenta: '1'=vista, '2'=ahorro, '3'=corriente/rut
+            account_type = partner.account_type or '1'
+            account_type = account_type.zfill(1)
 
-            # Email: 50 caracteres
+            # Moneda, Origen y Destino: siempre fijos
+            currency_code = '0'
+            office_origin = '1'
+            office_dest = '1'
+
+            # Factura (campo obligatorio): hasta 15 caracteres
+            invoice_ref = (payment.ref or 'FACTURA').replace(' ', '')[:15].ljust(15)
+
+            # Mail beneficiario (opcional): hasta 50 caracteres
             email = (partner.email or '').ljust(50)
 
-            # Referencia: 40 caracteres
-            ref = (payment.ref or '').ljust(40)
-
-            # Fecha de proceso: formato DDMMYYYY
-            process_date = datetime.now().strftime('%d%m%Y')
-
-            # Línea final con todos los campos concatenados
-            line = (
-                rut +
-                name +
-                amount +
-                account_number +
-                bank_code +
-                account_type +
-                email +
-                ref +
-                process_date
-            )
+            # Construcción de línea CSV con todos los campos separados por coma
+            line = ','.join([
+                name.strip(),
+                rut.strip(),
+                account_number.strip(),
+                amount.strip(),
+                bank_code.strip(),
+                account_type.strip(),
+                currency_code,
+                office_origin,
+                office_dest,
+                invoice_ref.strip(),
+                email.strip(),
+            ])
 
             export_lines.append(line)
 
         output = "\r\n".join(export_lines) + "\r\n"
 
         filename = f"nomina_bice_proveedores_{datetime.now().strftime('%Y%m%d')}.csv"
-
         export_file = base64.b64encode(output.encode('utf-8'))
 
         wizard = self.env['bice.export.wizard'].create({
