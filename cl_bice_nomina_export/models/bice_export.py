@@ -27,7 +27,7 @@ class AccountBatchPayment(models.Model):
             bank_account = partner.bank_ids and partner.bank_ids[0] or False
             account_number = bank_account.acc_number if bank_account else ''
             bank_code = bank_account.bank_id.l10n_cl_sbif_code if bank_account and bank_account.bank_id else '000'
-            account_type = bank_account.x_studio_tipo_de_cuenta or 'Cuenta Corriente'  # Temporal
+            account_type = getattr(bank_account, 'x_studio_tipo_de_cuenta', 'Cuenta Corriente') if bank_account else 'Cuenta Corriente'
             currency = '0'
             office_origin = '1'
             office_dest = '1'
