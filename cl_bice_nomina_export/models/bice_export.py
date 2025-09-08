@@ -2,6 +2,7 @@ import base64
 from odoo import models
 from odoo.exceptions import UserError
 from datetime import datetime
+import unicodedata
 
 
 class AccountBatchPayment(models.Model):
@@ -9,7 +10,6 @@ class AccountBatchPayment(models.Model):
 
     def export_bice_proveedores_file(self):
         self.ensure_one()
-
         export_lines = []
 
         for payment in self.payment_ids:
@@ -18,54 +18,73 @@ class AccountBatchPayment(models.Model):
             if not partner.vat:
                 raise UserError(f"El proveedor {partner.name} no tiene RUT configurado.")
 
-            rut = partner.vat.replace('.', '').replace('-', '').zfill(10)
+            if not partner.bank_ids:
+                raise UserError(f"El proveedor {partner.name} no tiene cuenta bancaria configurada.")
 
-            name = partner.name[:40].ljust(40)
+            bank_account = partner.bank_ids[0]
 
-            amount = str(int(payment.amount)).zfill(13)
+            # Nombre Titular: hasta 40 caracteres, sin tildes, guiones ni puntos
+            name = partner.name or ''
+            name = unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('ASCII')
+            name = name.replace('.', '').replace('-', '').upper()[:40].ljust(40)
 
-            bank_account = partner.bank_ids and partner.bank_ids[0] or False
+            # RUT Titular: sin puntos ni guion
+            rut = partner.vat.replace('.', '').replace('-', '')[:11]
 
-            account_number = bank_account.acc_number.rjust(20) if bank_account and bank_account.acc_number else ''.rjust(20)
+            # Monto: sin decimales, hasta 11 dígitos, sin separador
+            amount = str(int(round(payment.amount))).zfill(11)
 
+            # Cuenta Titular: hasta 17 caracteres
+            account_number = bank_account.acc_number[:17].rjust(17) if bank_account.acc_number else ''.rjust(17)
+
+            # Código Banco (SBIF)
             bank_code = (
                 bank_account.bank_id.l10n_cl_sbif_code
-                if bank_account and bank_account.bank_id and bank_account.bank_id.l10n_cl_sbif_code
+                if bank_account.bank_id and bank_account.bank_id.l10n_cl_sbif_code
                 else '000'
             )
             bank_code = bank_code.zfill(3)
 
-            # Mapear tipo de cuenta desde el campo personalizado
-            raw_account_type = bank_account and bank_account.x_studio_tipo_de_cuenta or ''
+            # Tipo de cuenta desde campo personalizado
+            raw_account_type = bank_account.x_studio_tipo_de_cuenta or ''
             account_type_map = {
-                'Cuenta Corriente': '1',
-                'Cuenta Vista': '2',
-                'Cuenta de ahorro': '3',
+                'Cuenta Corriente': '3',
+                'Cuenta Vista': '1',
+                'Cuenta de ahorro': '2',
                 'Cuenta RUT': '3',
             }
-            account_type = account_type_map.get(raw_account_type, '1').zfill(2)
+            account_type = account_type_map.get(raw_account_type, '3').zfill(1)
 
-            email = (partner.email or '').ljust(50)
-            ref = (payment.ref or '').ljust(40)
-            process_date = datetime.now().strftime('%d%m%Y')
+            # Moneda (fijo)
+            currency = '0'
 
-            # Exportar usando coma como separador
-            line = ",".join([
-                name.strip(),
-                rut.strip(),
-                account_number.strip(),
+            # Oficinas (fijo)
+            office_origin = '1'
+            office_destiny = '1'
+
+            # Referencia (factura, etc): hasta 15 caracteres
+            ref = (payment.ref or '').strip()[:15].ljust(15)
+
+            # Email (opcional): hasta 50 caracteres
+            email = (partner.email or '').strip()[:50].ljust(50)
+
+            # Línea completa con separador ";"
+            line = ";".join([
+                name,
+                rut,
                 amount,
+                account_number,
                 bank_code,
                 account_type,
-                '0',  # moneda CLP
-                '1',  # oficina origen
-                '1',  # oficina destino
-                ref.strip(),
-                email.strip()
+                currency,
+                office_origin,
+                office_destiny,
+                ref,
+                email
             ])
-
             export_lines.append(line)
 
+        # Ensamblar CSV sin encabezado, con \r\n
         output = "\r\n".join(export_lines) + "\r\n"
         filename = f"nomina_bice_proveedores_{datetime.now().strftime('%Y%m%d')}.csv"
         export_file = base64.b64encode(output.encode('utf-8'))
