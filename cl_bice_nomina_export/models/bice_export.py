@@ -19,7 +19,8 @@ class AccountBatchPayment(models.Model):
             if not partner.vat:
                 raise UserError(f"El proveedor {partner.name} no tiene RUT configurado.")
 
-            rut = partner.l10n_cl_rut.replace('.', '').replace('-', '')
+            rut = partner.vat.replace('.', '').replace('-', '') if partner.vat else ''
+
             rut = rut.zfill(10)
 
             # Nombre: 40 caracteres, izquierda, relleno con espacios
