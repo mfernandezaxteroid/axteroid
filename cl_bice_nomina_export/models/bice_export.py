@@ -92,7 +92,7 @@ class AccountBatchPayment(models.Model):
         # Ensamblar CSV sin encabezado, con \r\n
         output = "\r\n".join(export_lines) + "\r\n"
         filename = f"{datetime.now().strftime('%Y%m%d')}_Proveedores.csv"
-        export_file = base64.b64encode(output.encode('windows-1252'))
+        export_file = base64.b64encode(output.encode('latin-1'))
 
         wizard = self.env['bice.export.wizard'].create({
             'file_data': export_file,
