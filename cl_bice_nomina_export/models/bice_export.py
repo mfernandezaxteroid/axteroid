@@ -36,8 +36,8 @@ class AccountBatchPayment(models.Model):
             # RUT Titular: sin puntos ni guion
             rut = partner.vat.replace('.', '').replace('-', '')[:11]
 
-            # Monto: sin decimales, hasta 11 dígitos, sin separador
-            amount = str(int(round(payment.amount))).zfill(11)
+            # Monto sin ceros a la izquierda
+            amount = str(int(round(payment.amount)))
 
             # Cuenta Titular: hasta 17 caracteres
             account_number = bank_account.acc_number[:17].rjust(17) if bank_account.acc_number else ''.rjust(17)
@@ -48,7 +48,7 @@ class AccountBatchPayment(models.Model):
                 if bank_account.bank_id and bank_account.bank_id.l10n_cl_sbif_code
                 else '000'
             )
-            bank_code = bank_code.zfill(3)
+            bank_code = str(int(bank_code))
 
             # Tipo de cuenta desde campo personalizado
             raw_account_type = bank_account.x_studio_tipo_de_cuenta or ''
