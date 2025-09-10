@@ -63,7 +63,7 @@ class AccountBatchPayment(models.Model):
             office_destiny = '1'
 
             # Referencia (factura, etc): hasta 15 caracteres # 
-            ref = (payment.ref or '').strip()[:15].ljust(15) #
+            ref = clean_reference(payment.ref or '')
 
             # Email (opcional): hasta 50 caracteres
             email = (partner.email or '').strip()[:50].ljust(50)
