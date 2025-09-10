@@ -72,8 +72,8 @@ class AccountBatchPayment(models.Model):
             line = ";".join([
                 name,
                 rut,
-                amount,
                 account_number,
+                amount,
                 bank_code,
                 account_type,
                 currency,
