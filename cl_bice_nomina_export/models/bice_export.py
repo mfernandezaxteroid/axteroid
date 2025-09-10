@@ -62,9 +62,7 @@ class AccountBatchPayment(models.Model):
             office_origin = '1'
             office_destiny = '1'
 
-            # Referencia (factura, etc): hasta 15 caracteres
-        #   ref = (payment.ref or '').strip()[:15].ljust(15)
-        #
+
         # Obtener número de documento desde la(s) factura(s) conciliada(s)
         invoice = payment.reconciled_invoice_ids[:1]  # Tomar solo la primera si hay varias
         doc_number = invoice.l10n_latam_document_number if invoice else ''
