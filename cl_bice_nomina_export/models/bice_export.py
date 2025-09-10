@@ -62,16 +62,14 @@ class AccountBatchPayment(models.Model):
             office_origin = '1'
             office_destiny = '1'
 
-            # Obtener número de documento desde la(s) factura(s) conciliada(s)
-            invoice = payment.reconciled_invoice_ids[:1]  # Tomar solo la primera si hay varias
-            doc_number = invoice.l10n_latam_document_number if invoice else ''
-            ref = (doc_number or '').ljust(15)
-            
+            # Referencia (factura, etc): hasta 15 caracteres # 
+            ref = (payment.ref or '').strip()[:15].ljust(15) #
+
             # Email (opcional): hasta 50 caracteres
             email = (partner.email or '').strip()[:50].ljust(50)
 
             # Línea completa con separador ";"
-            line = ";".join([
+            line = ",".join([
                 name,
                 rut,
                 account_number,
@@ -88,7 +86,7 @@ class AccountBatchPayment(models.Model):
 
         # Ensamblar CSV sin encabezado, con \r\n
         output = "\r\n".join(export_lines) + "\r\n"
-        filename = f"nomina_bice_proveedores_{datetime.now().strftime('%Y%m%d')}.csv"
+        filename = f"{datetime.now().strftime('%Y%m%d')}_Proveedores.csv"
         export_file = base64.b64encode(output.encode('utf-8'))
 
         wizard = self.env['bice.export.wizard'].create({
