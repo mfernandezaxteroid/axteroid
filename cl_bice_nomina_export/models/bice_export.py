@@ -69,7 +69,7 @@ class AccountBatchPayment(models.Model):
             email = (partner.email or '').strip()[:50].ljust(50)
 
             # Línea completa con separador ";"
-            line = ",".join([
+            line = ";".join([
                 name,
                 rut,
                 account_number,
