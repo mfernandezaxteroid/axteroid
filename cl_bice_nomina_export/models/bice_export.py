@@ -3,7 +3,12 @@ from odoo import models
 from odoo.exceptions import UserError
 from datetime import datetime
 import unicodedata
+import re  # <-- asegúrate de tener este import también
 
+def clean_reference(text):
+    text = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('ASCII')
+    text = re.sub(r'[^A-Za-z0-9]', '', text)
+    return text[:15].ljust(15)
 
 class AccountBatchPayment(models.Model):
     _inherit = 'account.batch.payment'
