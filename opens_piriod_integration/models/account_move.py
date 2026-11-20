@@ -143,7 +143,7 @@ class AccountMove(models.Model):
 
                 lines.append((0, 0, {
                     'tax_ids': odoo_producto.taxes_id.ids,
-                    'product_id': odoo_producto.id,
+                    'product_id': odoo_producto.product_variant_id.id,
                     'name': line["name"],
                     'price_unit': line["amount"],
                     'quantity': line["quantity"],

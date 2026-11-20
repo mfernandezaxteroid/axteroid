@@ -5,7 +5,9 @@
     'summary': """
         Servicios y vistas para buscar datos desde el servicio ‘BUK’.""",
 
-    'version': '1.0',
+    'version': '19.0.1.0.0',
+    # No instalado en producción; sin migrar a 19 (analíticas usan campos que no existen).
+    'installable': False,
     'author': 'Open Solutions',
     'description': """
         Servicios y vistas para buscar datos desde el servicio ‘BUK’.

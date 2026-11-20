@@ -13,13 +13,17 @@ _logger = logging.getLogger(__name__)
 class PiriodController(http.Controller):
 
     # Expone el recurso al que se conecta piriod para informar la creacion de un invoice
-    @http.route('/api/piriod_webhook_invoice', type="json", auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/piriod_webhook_invoice', type='http', auth='public', methods=['POST'], csrf=False)
     def piriod_webhook_invoice(self, **kw):
-        AccountMove = request.env['account.move']
-        Log = request.env['piriod.webhook.log']
-        Company = request.env['res.company']
+        # Webhook público: todo corre como superusuario.
+        AccountMove = request.env['account.move'].sudo()
+        Log = request.env['piriod.webhook.log'].sudo()
+        Company = request.env['res.company'].sudo()
 
-        json = request.jsonrequest
+        try:
+            json = request.get_json_data()
+        except ValueError:
+            return Response(status=400)
         request.env['piriod.webhook.log'].sudo().create({
             'name': "Activacion de evento",
             'JSON_entrada': json
